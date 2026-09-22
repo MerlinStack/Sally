@@ -32,7 +32,9 @@ jobs:
         image: postgres:16-alpine
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: tinode
+          # Do NOT set POSTGRES_DB here: init-db creates database 'tinode'
+          # itself (CreateDb issues plain CREATE DATABASE, which fails with
+          # 42P04 if the service pre-creates an empty 'tinode' with no schema).
         ports:
           - 5432:5432
         options: >-

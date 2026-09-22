@@ -1,0 +1,86 @@
+# AXIZ Linux verification — unit tests, race detector, and DB init path.
+# Scope is verification only: no deployment, no secrets, no infrastructure.
+# Added in Phase 2A.2 because `go test -race` requires cgo+gcc, which the
+# Windows dev host lacks (CGO_ENABLED=0, no gcc). GitHub-hosted Linux
+# runners provide both, so this workflow is the durable closure for Gate 1.
+name: verify
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'server/**'
+      - 'tinode-db/**'
+      - 'pbx/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/verify.yml'
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'tinode-db/**'
+      - 'pbx/**'
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tinode
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          # Matches the `go 1.26.0` directive in go.mod (resolves latest 1.26.x).
+          go-version: '1.26'
+          cache: true
+
+      - name: Build server and DB initializer (postgres adapter)
+        run: |
+          go build -tags postgres -o /tmp/tinode ./server
+          go build -tags postgres -o /tmp/init-db ./tinode-db
+
+      - name: Initialize ephemeral database (proves adapter + schema path)
+        run: |
+          cat > /tmp/ci-tinode-db.conf <<'EOF'
+          {
+            "p2p_delete_enabled": true,
+            "store_config": {
+              "uid_key": "la6YsO+bNX/+XIkOqc5Svw==",
+              "use_adapter": "postgres",
+              "adapters": {
+                "postgres": {
+                  "User": "postgres",
+                  "Passwd": "postgres",
+                  "Host": "localhost",
+                  "Port": "5432",
+                  "DBName": "tinode",
+                  "SSLMode": "disable"
+                }
+              }
+            }
+          }
+          EOF
+          /tmp/init-db --config=/tmp/ci-tinode-db.conf --data=./tinode-db/data.json
+
+      - name: Unit tests (mock store, no DB required)
+        run: go test ./server -count=1
+
+      - name: Race detector (requires Linux cgo+gcc)
+        run: go test -race -tags postgres ./server -count=1

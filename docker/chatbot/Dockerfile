@@ -1,4 +1,9 @@
 # Dockerfile builds an image with a chatbot (Tino) for Tinode.
+#
+# SALEM WARNING — this image DOWNLOADS a prebuilt chatbot tarball from the
+# upstream Tinode release channel (see the ADD below) rather than building
+# this checkout. The chatbot is not on the Salem product roadmap yet.
+# Tracked in docs/salem-current-state.md.
 
 FROM python:3.13-slim
 

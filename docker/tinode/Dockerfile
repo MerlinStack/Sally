@@ -1,5 +1,22 @@
 # Docker file builds an image with a tinode chat server.
 #
+# ############################################################################
+# SALEM WARNING — THIS IMAGE DOES NOT CONTAIN THE SALEM CHECKOUT.
+# This Dockerfile DOWNLOADS A PREBUILT BINARY FROM THE UPSTREAM TINODE
+# RELEASE CHANNEL (see the ADD of tinode-*.tar.gz below). Building this
+# image from the Salem repository therefore produces a runtime that is
+# byte-for-byte UPSTREAM TINODE, and will silently IGNORE any local server/
+# changes in this checkout. It is NOT a valid Salem deployment artifact.
+#
+# Correct Salem build today (from the repository root):
+#     go build -tags postgres -o salem-server ./server
+# The matching CI reference is .github/workflows/verify.yml, which builds
+# the local checkout.
+# Fixing this Dockerfile properly (multi-stage build from source) is
+# deferred — tracked in docs/salem-current-state.md. Do not treat this file
+# as authoritative until then.
+# ############################################################################
+#
 # In order to run the image you have to link it to a running database container. For example, to
 # to use RethinkDB (named 'rethinkdb') and map the port where the tinode server accepts connections:
 #

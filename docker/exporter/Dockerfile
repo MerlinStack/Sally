@@ -1,3 +1,7 @@
+# SALEM WARNING — this image DOWNLOADS a prebuilt exporter binary from the
+# upstream Tinode release channel (see the ADD below) rather than building
+# this checkout. Tracked in docs/salem-current-state.md.
+
 FROM alpine:3.14
 
 ARG VERSION=0.16.4

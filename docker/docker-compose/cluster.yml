@@ -1,4 +1,9 @@
 # Reference configuration for a simple 3-node Tinode cluster.
+#
+# SALEM WARNING — the `tinode/*` service images below are UPSTREAM Docker Hub
+# images. Bringing this file up yields upstream Tinode, NOT this checkout.
+# Tracked in docs/salem-current-state.md.
+#
 # Includes:
 # * Mysql database
 # * 3 Tinode servers

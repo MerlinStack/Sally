@@ -1,0 +1,38 @@
+# Docker build context exclusions.
+#
+# The build context for the server/exporter/chatbot images is the REPOSITORY
+# ROOT, because the Dockerfiles now compile the Go/Python sources in this
+# checkout instead of downloading upstream release artifacts.
+#
+# Consequence: without this file the whole repository - including the .git
+# object store - would be uploaded to the Docker daemon on every build.
+
+.git
+.gitignore
+.github
+
+# Prebuilt Linux binaries committed by upstream Tinode. These are release
+# artifacts, not build inputs; the real exporter source is monitoring/exporter/.
+/exporter
+
+# Build artifacts
+*.exe
+*.test
+*.out
+/bin/
+/build/
+/dist/
+
+# Node client dependencies (not needed by the server images).
+node_modules
+**/node_modules
+
+# Documentation and media are not build inputs.
+docs
+*.md
+LICENSE
+
+# Editor/OS noise
+.vscode
+.idea
+.DS_Store

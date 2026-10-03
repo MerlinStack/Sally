@@ -196,39 +196,63 @@ destructive renaming of Tinode's protocol.
 
 ---
 
-## 5. Deployment — known blocker
+## 5. Deployment — builds from this checkout
 
-**Current state: the Docker configuration builds UPSTREAM TINODE artifacts,
-not this checkout.** This is a known, documented blocker, not a defect
-introduced by Salem.
+**Status: RESOLVED.** The Docker configuration now compiles **this
+checkout**. No image pulls a prebuilt upstream artifact.
 
-### Files requiring future correction
+### What changed
 
-| File | Line | Problem |
+All three Dockerfiles were converted to multi-stage builds that compile
+local sources:
+
+| File | Before | After |
 |---|---|---|
-| `docker/tinode/Dockerfile` | 175 | `ADD https://github.com/tinode/chat/releases/download/v$BINVERS/tinode-$TARGET_DB.linux-amd64.tar.gz` — downloads an upstream release binary |
-| `docker/chatbot/Dockerfile` | 28 | same pattern for `py-chatbot.tar.gz` |
-| `docker/exporter/Dockerfile` | 34 | same pattern for `exporter.linux-amd64` |
-| `docker/docker-compose/single-instance.yml` | 19, 108 | `image: tinode/tinode:latest`, `tinode/exporter:latest` |
-| `docker/docker-compose/cluster.yml` | 19, 24 | same |
+| `docker/tinode/Dockerfile` | `ADD …/releases/download/…tar.gz` | Stage 1 compiles `./server` → `tinode` and `./tinode-db` → `init-db` |
+| `docker/exporter/Dockerfile` | `ADD …/exporter.linux-amd64` | Stage 1 compiles `./monitoring/exporter` |
+| `docker/chatbot/Dockerfile` | `ADD …/py-chatbot.tar.gz` | `pip install -r` from `chatbot/python/` |
+| `docker/docker-compose/*.yml` | `image: tinode/tinode:latest` | `build:` + `image: tinode/tinode:local` |
+| `docker-build.sh` | context `docker/tinode` | context `.` with `-f docker/<x>/Dockerfile` |
+| `.dockerignore` | *did not exist* | excludes `.git`, the committed 16 MB `exporter` binary, node deps |
 
-Consequence: `docker build` / `docker compose up` on this repository
-produces a runtime that is upstream Tinode and **silently ignores** any local
-`server/` changes.
+`git grep "releases/download" -- docker/` returns **nothing**.
 
-### The correct path today
+### Build contract preserved
+
+- **`TARGET_DB` still works**: `mysql` / `postgres` / `mongodb` /
+  `rethinkdb` select one adapter via its `//go:build` tag; `alldbs`
+  compiles all four, matching the upstream `tinode/tinode:latest` image.
+- Every `ENV`, `ARG`, `ENTRYPOINT`, `EXPOSE`, and `HEALTHCHECK` from the
+  original `docker/tinode/Dockerfile` is preserved verbatim.
+- `entrypoint.sh` still finds everything it needs: `tinode`, `init-db`,
+  `config.template`, `credentials.sh`, `data.json`, and a `static/`
+  directory.
+- `CGO_ENABLED=0` — all DB adapters are pure Go, so binaries are static and
+  cross-compile cleanly (`BUILDPLATFORM` toolchain, `TARGETARCH` output).
+
+### Verified
+
+- All five `TARGET_DB` tag combinations compile with `CGO_ENABLED=0`.
+- Both `tinode` and `init-db` build from **only** the files the Dockerfile
+  copies (`go.mod`, `go.sum`, `server/`, `tinode-db/`, `pbx/`), proving the
+  COPY set is complete — every internal import resolves inside `server/` or
+  `pbx/`.
+- Compose files parse and retain their full service lists.
+
+**Not verified:** an actual `docker build` was not run — no Docker daemon
+was available on the host. Run it before relying on the images:
+
+```sh
+docker build -f docker/tinode/Dockerfile --build-arg TARGET_DB=postgres -t salem/tinode:postgres .
+```
+
+### Direct build without Docker
 
 ```sh
 go build -tags postgres -o salem-server ./server
 ```
 
-This is what CI already does — see `.github/workflows/verify.yml`, which
-builds the local checkout and runs unit + race tests against it. The CI
-workflow is the reliable reference; the Docker path is not.
-
-Each affected Dockerfile now carries a `SALEM WARNING` header so this cannot
-be missed by a future operator. Redesigning the Docker build to compile from
-source is **deferred to a dedicated task**.
+Still what CI does (`.github/workflows/verify.yml`).
 
 ---
 
@@ -303,12 +327,14 @@ built on. They are not stale.
 
 ## 8. Current known blockers
 
-1. **Docker builds upstream artifacts, not Salem.** See §5. Blocks any
-   container-based Salem deployment. Workaround: build the binary directly.
+1. **Docker images are not yet built and run end-to-end.** The Dockerfiles now
+   compile this checkout (§5), but no `docker build` has been executed — no
+   Docker daemon was available. Verify before first deployment.
 2. **No Salem client/UI in this repository.** Tinode's clients live in
    *separate upstream repositories* (`tinode/webapp`, `tinode/react-native-app`,
    `tinode/ios`). There is no `webapp/` directory here. A Salem client is net-new
-   work with a dedicated design system — not yet started.
+   work with a dedicated design system — not yet started. This is now the
+   largest gap.
 3. **GitHub default branch is still `master`.** `main` **is** pushed and tracks
    `origin/main`, but `origin/HEAD` still points at `master`. Until the remote
    default is switched, collaborators cloning `origin` get `master` and will

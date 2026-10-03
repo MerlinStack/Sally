@@ -1,8 +1,16 @@
 # Reference configuration for a simple 3-node Tinode cluster.
 #
-# SALEM WARNING — the `tinode/*` service images below are UPSTREAM Docker Hub
-# images. Bringing this file up yields upstream Tinode, NOT this checkout.
-# Tracked in docs/salem-current-state.md.
+# SALEM: the tinode and exporter services are BUILT FROM THIS CHECKOUT, not
+# pulled from Docker Hub. The ':local' tag is deliberate - it makes an
+# accidental upstream pull impossible to confuse with a Salem build.
+#
+# Run from the repository root:
+#     docker compose -f docker/docker-compose/cluster.yml up --build
+#
+# TARGET_DB=alldbs compiles every database adapter so that the
+# *-postgres/*-mysql/*-mongodb/*-rethinkdb overlay files can still switch
+# adapters at runtime via STORE_USE_ADAPTER. This matches the behaviour of
+# the upstream `tinode/tinode:latest` image, which this file replaces.
 #
 # Includes:
 # * Mysql database
@@ -16,12 +24,20 @@ x-tinode:
   &tinode-base
   depends_on:
     - db
-  image: tinode/tinode:latest
+  build:
+    context: ../..
+    dockerfile: docker/tinode/Dockerfile
+    args:
+      TARGET_DB: alldbs
+  image: tinode/tinode:local
   restart: always
 
 x-exporter:
   &exporter-base
-  image: tinode/exporter:latest
+  build:
+    context: ../..
+    dockerfile: docker/exporter/Dockerfile
+  image: tinode/exporter:local
   restart: always
 
 x-tinode-env-vars: &tinode-env-vars

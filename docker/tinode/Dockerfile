@@ -1,21 +1,13 @@
 # Docker file builds an image with a tinode chat server.
 #
-# ############################################################################
-# SALEM WARNING — THIS IMAGE DOES NOT CONTAIN THE SALEM CHECKOUT.
-# This Dockerfile DOWNLOADS A PREBUILT BINARY FROM THE UPSTREAM TINODE
-# RELEASE CHANNEL (see the ADD of tinode-*.tar.gz below). Building this
-# image from the Salem repository therefore produces a runtime that is
-# byte-for-byte UPSTREAM TINODE, and will silently IGNORE any local server/
-# changes in this checkout. It is NOT a valid Salem deployment artifact.
+# SALEM: this image is built FROM THIS CHECKOUT. It compiles ./server and
+# ./tinode-db with the Go toolchain, so the resulting binary contains the
+# local server/ sources. It does NOT download any upstream release artifact.
 #
-# Correct Salem build today (from the repository root):
-#     go build -tags postgres -o salem-server ./server
-# The matching CI reference is .github/workflows/verify.yml, which builds
-# the local checkout.
-# Fixing this Dockerfile properly (multi-stage build from source) is
-# deferred — tracked in docs/salem-current-state.md. Do not treat this file
-# as authoritative until then.
-# ############################################################################
+# BUILD CONTEXT IS THE REPOSITORY ROOT, not docker/tinode, because the Go
+# sources live outside that directory:
+#     docker build -f docker/tinode/Dockerfile --build-arg TARGET_DB=postgres .
+# (docker-build.sh does this for you.)
 #
 # In order to run the image you have to link it to a running database container. For example, to
 # to use RethinkDB (named 'rethinkdb') and map the port where the tinode server accepts connections:
@@ -26,11 +18,52 @@
 #	--env AUTH_TOKEN_KEY=base64+encoded+32+bytes \
 #	tinode-server
 
+# ---------------------------------------------------------------------------
+# Stage 1: compile the server and the database initializer from source.
+# ---------------------------------------------------------------------------
+# BUILDPLATFORM lets the toolchain run natively (fast) while cross-compiling
+# the output. Safe because every DB adapter is pure Go, so CGO_ENABLED=0
+# produces portable static binaries with no musl/glibc coupling.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
+
+ARG TARGET_DB=mysql
+ARG TARGETARCH=amd64
+
+# Dependency layer: cached independently of source changes.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY server/ ./server/
+COPY tinode-db/ ./tinode-db/
+COPY pbx/ ./pbx/
+
+# Translate TARGET_DB into Go build tags. Each adapter is gated by
+# //go:build <name>; 'alldbs' compiles every adapter so the operator can pick
+# one at runtime via STORE_USE_ADAPTER.
+#   server/db/{mysql,postgres,mongodb,rethinkdb}/adapter.go
+RUN set -eu; \
+	case "$TARGET_DB" in \
+		mysql)     TAGS="mysql" ;; \
+		postgres)  TAGS="postgres" ;; \
+		mongodb)   TAGS="mongodb" ;; \
+		rethinkdb) TAGS="rethinkdb" ;; \
+		alldbs)    TAGS="mysql postgres mongodb rethinkdb" ;; \
+		*) echo "SALEM: unsupported TARGET_DB='$TARGET_DB'" >&2; exit 1 ;; \
+	esac; \
+	echo "Building with tags: $TAGS (GOARCH=$TARGETARCH)"; \
+	mkdir -p /out; \
+	CGO_ENABLED=0 GOOS=linux GOARCH="$TARGETARCH" \
+		go build -trimpath -tags "$TAGS" -o /out/tinode ./server; \
+	CGO_ENABLED=0 GOOS=linux GOARCH="$TARGETARCH" \
+		go build -trimpath -tags "$TAGS" -o /out/init-db ./tinode-db
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime image.
+# ---------------------------------------------------------------------------
 FROM alpine:3.22
 
 ARG VERSION=0.25
 ENV VERSION=$VERSION
-ARG BINVERS=$VERSION
 
 LABEL maintainer="Tinode Team <info@tinode.co>"
 LABEL name="TinodeChatServer"
@@ -167,16 +200,19 @@ RUN apk update && \
 
 WORKDIR /opt/tinode
 
-# Copy config template to the container.
-COPY config.template .
-COPY entrypoint.sh .
+# Copy the compiled binaries from the build stage.
+COPY --from=builder /out/tinode ./tinode
+COPY --from=builder /out/init-db ./init-db
 
-# Get the desired Tinode build.
-ADD https://github.com/tinode/chat/releases/download/v$BINVERS/tinode-$TARGET_DB.linux-amd64.tar.gz .
+# Copy config template and helper scripts from this checkout.
+COPY docker/tinode/config.template .
+COPY docker/tinode/entrypoint.sh .
+COPY tinode-db/credentials.sh .
+COPY tinode-db/data.json .
 
-# Unpack the Tinode archive.
-RUN tar -xzf tinode-$TARGET_DB.linux-amd64.tar.gz \
-	&& rm tinode-$TARGET_DB.linux-amd64.tar.gz
+# Static assets directory. The entrypoint writes firebase-init.js here and
+# the server serves it; mount a real client build over it via EXT_STATIC_DIR.
+RUN mkdir -p static
 
 # Create directory for chatbot data.
 RUN mkdir /botdata

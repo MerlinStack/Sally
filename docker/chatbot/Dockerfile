@@ -1,9 +1,15 @@
 # Dockerfile builds an image with a chatbot (Tino) for Tinode.
 #
-# SALEM WARNING — this image DOWNLOADS a prebuilt chatbot tarball from the
-# upstream Tinode release channel (see the ADD below) rather than building
-# this checkout. The chatbot is not on the Salem product roadmap yet.
-# Tracked in docs/salem-current-state.md.
+# SALEM: this image is built FROM THIS CHECKOUT. It installs the chatbot
+# sources in chatbot/python/ instead of downloading a prebuilt tarball from
+# the upstream Tinode release channel.
+#
+# NOTE: the Tinode chatbot is NOT on the Salem product roadmap. It is retained
+# only so the inherited docker-build.sh path keeps working. See
+# docs/salem-current-state.md.
+#
+# BUILD CONTEXT IS THE REPOSITORY ROOT:
+#     docker build -f docker/chatbot/Dockerfile .
 
 FROM python:3.13-slim
 
@@ -11,7 +17,6 @@ ARG VERSION=0.25
 ARG LOGIN_AS=
 ARG TINODE_HOST=tinode-srv:16060
 ENV VERSION=$VERSION
-ARG BINVERS=$VERSION
 
 LABEL maintainer="Tinode Team <info@tinode.co>"
 LABEL name="TinodeChatbot"
@@ -24,11 +29,9 @@ WORKDIR /usr/src/bot
 # Volume with login cookie. Not created automatically.
 # VOLUME /botdata
 
-# Get tarball with the chatbot code and data.
-ADD https://github.com/tinode/chat/releases/download/v${BINVERS}/py-chatbot.tar.gz .
-# Unpack chatbot, delete archive
-RUN tar -xzf py-chatbot.tar.gz \
-	&& rm py-chatbot.tar.gz
+# Chatbot source and data from this checkout (chatbot.py, quotes.txt,
+# requirements.txt).
+COPY chatbot/python/ .
 
 RUN pip install --no-cache-dir -r requirements.txt
 

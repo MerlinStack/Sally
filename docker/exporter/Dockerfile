@@ -1,8 +1,32 @@
-# SALEM WARNING — this image DOWNLOADS a prebuilt exporter binary from the
-# upstream Tinode release channel (see the ADD below) rather than building
-# this checkout. Tracked in docs/salem-current-state.md.
+# SALEM: this image is built FROM THIS CHECKOUT. It compiles the exporter
+# source in monitoring/exporter/ instead of downloading a prebuilt binary from
+# the upstream Tinode release channel.
+#
+# BUILD CONTEXT IS THE REPOSITORY ROOT:
+#     docker build -f docker/exporter/Dockerfile .
 
-FROM alpine:3.14
+# ---------------------------------------------------------------------------
+# Stage 1: compile the metrics exporter from source.
+# ---------------------------------------------------------------------------
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
+
+ARG TARGETARCH=amd64
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY monitoring/exporter/ ./monitoring/exporter/
+
+# Pure Go, no cgo: the resulting binary is static and portable.
+RUN set -eu; \
+	mkdir -p /out; \
+	CGO_ENABLED=0 GOOS=linux GOARCH="$TARGETARCH" \
+		go build -trimpath -o /out/exporter ./monitoring/exporter
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime image.
+# ---------------------------------------------------------------------------
+FROM alpine:3.22
 
 ARG VERSION=0.16.4
 ENV VERSION=$VERSION
@@ -30,12 +54,13 @@ WORKDIR /opt/tinode
 
 RUN apk add --no-cache bash
 
-# Fetch exporter build from Github.
-ADD https://github.com/tinode/chat/releases/download/v$VERSION/exporter.linux-amd64 ./exporter
+# Exporter built from this checkout.
+COPY --from=builder /out/exporter ./exporter
 
-COPY entrypoint.sh .
+COPY docker/exporter/entrypoint.sh .
+
 RUN chmod +x exporter && chmod +x entrypoint.sh
 
-ENTRYPOINT ./entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
 
 EXPOSE 6222

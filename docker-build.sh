@@ -55,7 +55,9 @@ do
     buildtags="${buildtags} --tag ${name}:latest --tag ${name}:${ver[0]}.${ver[1]}"
   fi
   docker rmi ${rmitags}
-  docker ${buildcmd} --build-arg VERSION=$tag --build-arg TARGET_DB=${dbtag} ${buildtags} docker/tinode
+  # Context is the repository root ('.'), because the image is compiled from
+  # this checkout's Go sources rather than an upstream release tarball.
+  docker ${buildcmd} -f docker/tinode/Dockerfile --build-arg VERSION=$tag --build-arg TARGET_DB=${dbtag} ${buildtags} .
 done
 
 if [ "$db" ]; then
@@ -70,7 +72,8 @@ if [ -n "$FULLRELEASE" ]; then
   buildtags="${buildtags}  --tag tinode/chatbot:latest --tag tinode/chatbot:${ver[0]}.${ver[1]}"
 fi
 docker rmi ${rmitags}
-docker ${buildcmd} --build-arg VERSION=$tag ${buildtags} docker/chatbot
+# Context is the repository root ('.') - see docker/tinode build above.
+docker ${buildcmd} -f docker/chatbot/Dockerfile --build-arg VERSION=$tag ${buildtags} .
 
 # Build exporter image
 buildtags="--tag tinode/exporter:${ver[0]}.${ver[1]}.${ver[2]}"
@@ -80,4 +83,5 @@ if [ -n "$FULLRELEASE" ]; then
   buildtags="${buildtags}  --tag tinode/exporter:latest --tag tinode/exporter:${ver[0]}.${ver[1]}"
 fi
 docker rmi ${rmitags}
-docker ${buildcmd} --build-arg VERSION=$tag ${buildtags} docker/exporter
+# Context is the repository root ('.') - see docker/tinode build above.
+docker ${buildcmd} -f docker/exporter/Dockerfile --build-arg VERSION=$tag ${buildtags} .

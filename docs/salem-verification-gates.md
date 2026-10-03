@@ -1,9 +1,18 @@
-# AXIZ Verification Gates (Phase 2A.2)
+# Salem Verification Gates (Phase 2A.2)
 
 Closes the three environmental blockers from Phase 2A.1 with evidence, not
 claims. Frozen core untouched: no Go, protocol, schema, or config changes —
 only this file, the CI workflow, and out-of-repo staging artifacts in the
 operator temp dir (never committed).
+
+> **Naming note.** This document is a historical engineering record written
+> while the product was still called AXIZ. The product is now **Salem**. The
+> *prose branding* has been updated, but **evidence identifiers are preserved
+> verbatim** where renaming them would falsify the record — these include the
+> `axiz-staging-pg` container, the `/tmp/axiz-gate3.dump` dump file, the
+> `axiz_probe2.mjs` probe script, and the Go module path
+> `github.com/tinode/chat`. Those name real artifacts and real upstream
+> identifiers. Do not "clean them up".
 
 ## Gate 1 — Linux race test
 
@@ -34,7 +43,7 @@ operator temp dir (never committed).
     service keeps the default `postgres` maintenance DB and `init-db`
     creates `tinode` itself.
   * Run 2 (`4e39cc5b`, 2026-09-22, `verify` #2,
-    https://github.com/MerlinStack/Axiz/actions/runs/35705238231):
+    https://github.com/MerlinStack/Salem/actions/runs/35705238231):
     **SUCCESS** — all steps green: build + DB init (`Database successfully
     created`, `All done`) + `go test ./server -count=1`
     (`ok github.com/tinode/chat/server 0.043s`) +
@@ -84,7 +93,10 @@ and dev `:6060` server untouched throughout):
   `users=15, topics=21, messages=120, subs=75`; 15 basic auth records present.
 * App-level proof: staging server pointed at `tinode_restore_verify`
   (config identical except `DBName`), full probe re-run → **DONE 23/23**.
-* Status: **PASS** (procedure in `docs/axiz-phase1-production.md` §6
-  corroborated verbatim: same tools, same flags, same separate-target rule).
+* Status: **PASS** (procedure originally cited in `docs/axiz-phase1-production.md`
+  §6 — note that this document is **not present in this repository**; it was
+  never committed here, so the cross-reference cannot be verified locally. The
+  figures above stand on their own recorded evidence: same tools, same flags,
+  same separate-target rule).
 * Note: `RESET_DB=true` was never used; `tinode-postgres` and dev data were
   never at risk — every write landed in the staging container or temp files.

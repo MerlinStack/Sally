@@ -1,8 +1,12 @@
-# AXIZ Linux verification — unit tests, race detector, and DB init path.
+# Salem Linux verification — unit tests, race detector, and DB init path.
 # Scope is verification only: no deployment, no secrets, no infrastructure.
 # Added in Phase 2A.2 because `go test -race` requires cgo+gcc, which the
 # Windows dev host lacks (CGO_ENABLED=0, no gcc). GitHub-hosted Linux
 # runners provide both, so this workflow is the durable closure for Gate 1.
+#
+# NOTE: this workflow builds the CURRENT local checkout (go build ./server).
+# It never pulls a prebuilt upstream Tinode release. Contrast with the
+# Dockerfiles under docker/, which still download upstream release tarballs.
 name: verify
 
 on:

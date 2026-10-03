@@ -115,13 +115,28 @@ feature/* <- short-lived branches off main
 
 ### Current position relative to upstream
 
-At the time of writing: `main` is **3 commits ahead** of
-`upstream/devel`/`upstream/master` (merge-base `a4d12e3f`) and **4 behind**.
-History is linear and un-diverged — no merge, no rebase, no history rewrite.
+`main` is **6 commits ahead** of `upstream/devel`/`upstream/master`
+(merge-base `a4d12e3f`) and **4 behind**. History is linear and
+un-diverged — no merge, no rebase, no history rewrite.
 
-The 3 Salem commits are CI and verification work only. They touch
-`.github/workflows/verify.yml` and `docs/`. **They do not modify Go,
-protocol, schema, or config code.**
+All 6 Salem commits are CI, documentation, and build-comment work:
+
+| Commit | Scope |
+|---|---|
+| `2c8a9c25` | CI: Linux verification workflow |
+| `4e39cc5b` | CI: init-db database creation fix |
+| `98440d83` | docs: Gate 1 closed as PASS |
+| `030ad249` | docs: AXIZ → Salem rebrand |
+| `6095394a` | docs: this current-state document |
+| `dd813fa7` | build: Docker upstream-artifact warnings |
+
+**None of them modify Go, protocol, schema, or config code.** Verified:
+`git diff --name-only a4d12e3f..HEAD` touches no `.go`, `.proto`,
+`server/`, `pbx/`, `go.mod`, `go.sum`, or `tinode-db/` path. The Go module
+path remains `github.com/tinode/chat`.
+
+There is currently **no Salem application code in this repository.** What
+exists is the Tinode engine plus CI/docs/build metadata.
 
 ---
 
@@ -294,10 +309,11 @@ built on. They are not stale.
    *separate upstream repositories* (`tinode/webapp`, `tinode/react-native-app`,
    `tinode/ios`). There is no `webapp/` directory here. A Salem client is net-new
    work with a dedicated design system — not yet started.
-3. **`main` is not yet pushed to `origin`.** `origin` still has `master` as its
-   default branch and has never received `main`. Until `main` is pushed and the
-   remote default is switched, collaborators cloning `origin` get `master`.
-   Deliberately not pushed during this task.
+3. **GitHub default branch is still `master`.** `main` **is** pushed and tracks
+   `origin/main`, but `origin/HEAD` still points at `master`. Until the remote
+   default is switched, collaborators cloning `origin` get `master` and will
+   not see the Salem work. `master` is retained deliberately as a rollback
+   point; archive it only after CI is green on `main`.
 4. **Local `-race` testing is blocked on this host.** `CGO_ENABLED=0` and no gcc
    on Windows. CI provides the Linux/gcc environment; see
    `docs/salem-verification-gates.md` Gate 1.

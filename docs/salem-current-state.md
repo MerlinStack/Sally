@@ -299,13 +299,15 @@ built on. They are not stale.
   media, drafty, validate, auth adapters)
 - `tinode-db/` — schema DDL + seed data + `init-db`
 - `pbx/` — gRPC/protobuf client definitions
-- `.github/workflows/verify.yml` — the only Salem-authored CI
+- `salem-webapp/` — the Salem web client. **Scaffold only**: real protocol
+  wiring, no design system. See `salem-webapp/README.md`.
+- `.github/workflows/verify.yml` — CI. Two jobs: `verify` (Go build + DB
+  init + unit + race) and `client` (typecheck + test + build).
 
 ### Deferred / not on the roadmap
 
-- `chatbot/` — Tino chatbot. Unused by Salem.
-- `docker/`, `docker-compose` — inherited upstream, see the blocker above.
-- `exporter/`, `monitoring/` — inherited Prometheus metrics tooling.
+- `chatbot/` — Tino chatbot. Unused by Salem, not on the roadmap.
+- `exporter/`, `monitoring/` — inherited Prometheus/InfluxDB metrics tooling.
 - `loadtest/` — Tsung load profiles.
 - `pbx/py_grpc`, `tn-cli`, `keygen`, `rest-auth` — inherited helper clients.
 
@@ -330,11 +332,11 @@ built on. They are not stale.
 1. **Docker images are not yet built and run end-to-end.** The Dockerfiles now
    compile this checkout (§5), but no `docker build` has been executed — no
    Docker daemon was available. Verify before first deployment.
-2. **No Salem client/UI in this repository.** Tinode's clients live in
-   *separate upstream repositories* (`tinode/webapp`, `tinode/react-native-app`,
-   `tinode/ios`). There is no `webapp/` directory here. A Salem client is net-new
-   work with a dedicated design system — not yet started. This is now the
-   largest gap.
+2. **Salem client is a scaffold, not a product.** `salem-webapp/` exists and
+   does real protocol work — connect, `basic` auth, open conversation, load
+   history, send/receive — but there is no visual design, no contacts
+   resolution, no Drafty rendering, no push, and no E2EE. It is a foundation
+   to build on, not something to ship. See `salem-webapp/README.md`.
 3. **GitHub default branch is still `master`.** `main` **is** pushed and tracks
    `origin/main`, but `origin/HEAD` still points at `master`. Until the remote
    default is switched, collaborators cloning `origin` get `master` and will

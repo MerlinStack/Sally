@@ -1,0 +1,348 @@
+/*
+ * Salem base styles.
+ *
+ * Intentionally plain. Visual identity is deferred to a dedicated Salem design
+ * system (see docs/salem-current-state.md). Explicitly avoided here:
+ * glassmorphism, gradients, and repeated card grids.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --salem-bg: #ffffff;
+  --salem-fg: #16181d;
+  --salem-muted: #5b6472;
+  --salem-line: #d8dce3;
+  --salem-accent: #1f4fd8;
+  --salem-accent-fg: #ffffff;
+  --salem-danger: #a3251f;
+  --salem-surface: #f5f6f8;
+
+  --salem-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --salem-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --salem-bg: #14161a;
+    --salem-fg: #e8eaed;
+    --salem-muted: #99a1ae;
+    --salem-line: #2b2f36;
+    --salem-accent: #7ea2ff;
+    --salem-accent-fg: #10131a;
+    --salem-danger: #ff8b82;
+    --salem-surface: #1b1e23;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--salem-bg);
+  color: var(--salem-fg);
+  font-family: var(--salem-font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyboard focus must always be visible. */
+:focus-visible {
+  outline: 2px solid var(--salem-accent);
+  outline-offset: 2px;
+}
+
+.salem-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100%;
+  border-top: 2px solid var(--salem-fg);
+}
+
+.salem-sidebar {
+  border-right: 1px solid var(--salem-line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.salem-brand {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--salem-line);
+}
+
+.salem-brand-name {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.salem-brand-sub {
+  color: var(--salem-muted);
+  font-size: 12px;
+  margin: 2px 0 0;
+}
+
+.salem-identity {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--salem-line);
+  font-size: 12px;
+  color: var(--salem-muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.salem-identity code {
+  font-family: var(--salem-mono);
+  color: var(--salem-fg);
+}
+
+.salem-conversations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.salem-conversation {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--salem-line);
+  padding: 10px 16px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  display: block;
+}
+
+.salem-conversation:hover {
+  background: var(--salem-surface);
+}
+
+.salem-conversation[aria-current='true'] {
+  background: var(--salem-surface);
+  box-shadow: inset 2px 0 0 var(--salem-accent);
+}
+
+.salem-conversation-title {
+  font-weight: 550;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.salem-conversation-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--salem-muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.salem-thread {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.salem-thread-header {
+  border-bottom: 1px solid var(--salem-line);
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.salem-thread-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.salem-thread-topic {
+  font-family: var(--salem-mono);
+  font-size: 11px;
+  color: var(--salem-muted);
+}
+
+.salem-mode {
+  font-size: 11px;
+  border: 1px solid var(--salem-line);
+  padding: 1px 6px;
+  color: var(--salem-muted);
+  white-space: nowrap;
+}
+
+.salem-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.salem-message {
+  max-width: 68ch;
+}
+
+.salem-message-own {
+  align-self: flex-end;
+  text-align: right;
+}
+
+.salem-message-head {
+  font-size: 11px;
+  color: var(--salem-muted);
+  margin-bottom: 2px;
+  font-family: var(--salem-mono);
+}
+
+.salem-message-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.salem-empty {
+  color: var(--salem-muted);
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.salem-composer {
+  border-top: 1px solid var(--salem-line);
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.salem-composer textarea {
+  flex: 1;
+  resize: vertical;
+  min-height: 40px;
+  max-height: 160px;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--salem-line);
+  border-radius: 4px;
+  background: var(--salem-bg);
+  color: inherit;
+}
+
+.salem-login {
+  max-width: 340px;
+  margin: 12vh auto;
+  padding: 24px;
+  border: 1px solid var(--salem-line);
+  border-top: 3px solid var(--salem-fg);
+}
+
+.salem-login h1 {
+  font-size: 20px;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.salem-login p.salem-hint {
+  color: var(--salem-muted);
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
+.salem-field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.salem-field span {
+  display: block;
+  font-size: 12px;
+  color: var(--salem-muted);
+  margin-bottom: 4px;
+}
+
+.salem-field input {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--salem-line);
+  border-radius: 4px;
+  background: var(--salem-bg);
+  color: inherit;
+}
+
+.salem-button {
+  font: inherit;
+  font-weight: 550;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: var(--salem-accent);
+  color: var(--salem-accent-fg);
+  cursor: pointer;
+}
+
+.salem-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.salem-button-quiet {
+  background: none;
+  color: var(--salem-muted);
+  border-color: var(--salem-line);
+}
+
+.salem-error {
+  color: var(--salem-danger);
+  font-size: 13px;
+  margin: 12px 0 0;
+}
+
+.salem-status {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--salem-muted);
+}
+
+.salem-status[data-state='authenticated'] {
+  background: #1a7f37;
+}
+
+.salem-status[data-state='failed'] {
+  background: var(--salem-danger);
+}
+
+.salem-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

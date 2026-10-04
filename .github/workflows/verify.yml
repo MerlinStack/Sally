@@ -16,6 +16,7 @@ on:
       - 'server/**'
       - 'tinode-db/**'
       - 'pbx/**'
+      - 'salem-webapp/**'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/verify.yml'
@@ -24,8 +25,10 @@ on:
       - 'server/**'
       - 'tinode-db/**'
       - 'pbx/**'
+      - 'salem-webapp/**'
       - 'go.mod'
       - 'go.sum'
+      - '.github/workflows/verify.yml'
 
 jobs:
   verify:
@@ -90,3 +93,44 @@ jobs:
 
       - name: Race detector (requires Linux cgo+gcc)
         run: go test -race -tags postgres ./server -count=1
+
+  client:
+    # Salem web client. Separate job because it needs Node, not Go, and must
+    # not be blocked by the server toolchain.
+    name: salem-webapp (typecheck, test, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: salem-webapp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: salem-webapp/package-lock.json
+
+      # ci, not ci-only, so the lockfile is honoured exactly as committed.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      # Proves the tinode-sdk named-export interop resolves and the bundle
+      # builds. A silent interop break here is the failure mode this catches.
+      - name: Production build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: salem-webapp-dist
+          path: salem-webapp/dist
+          retention-days: 7
